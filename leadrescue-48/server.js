@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+const DATABASE_URL = resolveDatabaseUrl();
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "revenuesprint.json");
 const USER_AGENT = "RevenueSprint48/2.0 (server-side quote recovery scanner; human-approved outreach)";
@@ -43,6 +43,46 @@ const nowIso = () => new Date().toISOString();
 const clean = (value) => String(value || "").trim();
 const safeId = (prefix = "lead") => `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
 const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
+
+function resolveDatabaseUrl() {
+  const directUrl = process.env.DATABASE_URL
+    || process.env.DATABASE_PRIVATE_URL
+    || process.env.POSTGRES_URL
+    || process.env.POSTGRES_PRIVATE_URL
+    || process.env.DATABASE_PUBLIC_URL
+    || "";
+  if (directUrl) return directUrl;
+
+  const { PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE } = process.env;
+  if (PGHOST && PGUSER && PGPASSWORD && PGDATABASE) {
+    const user = encodeURIComponent(PGUSER);
+    const password = encodeURIComponent(PGPASSWORD);
+    const host = PGHOST;
+    const port = PGPORT || "5432";
+    const database = encodeURIComponent(PGDATABASE);
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  }
+
+  return "";
+}
+
+function databaseDiagnostics() {
+  return {
+    configured: Boolean(DATABASE_URL),
+    env: {
+      DATABASE_URL: Boolean(process.env.DATABASE_URL),
+      DATABASE_PRIVATE_URL: Boolean(process.env.DATABASE_PRIVATE_URL),
+      POSTGRES_URL: Boolean(process.env.POSTGRES_URL),
+      POSTGRES_PRIVATE_URL: Boolean(process.env.POSTGRES_PRIVATE_URL),
+      DATABASE_PUBLIC_URL: Boolean(process.env.DATABASE_PUBLIC_URL),
+      PGHOST: Boolean(process.env.PGHOST),
+      PGPORT: Boolean(process.env.PGPORT),
+      PGUSER: Boolean(process.env.PGUSER),
+      PGPASSWORD: Boolean(process.env.PGPASSWORD),
+      PGDATABASE: Boolean(process.env.PGDATABASE)
+    }
+  };
+}
 
 function addDays(days) {
   const date = new Date();
@@ -592,7 +632,13 @@ function startAutopilotLoop() {
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, app: "RevenueSprint 48", storage: storageMode, time: nowIso() });
+  res.json({
+    ok: true,
+    app: "RevenueSprint 48",
+    storage: storageMode,
+    database: databaseDiagnostics(),
+    time: nowIso()
+  });
 });
 
 app.get("/api/leads", async (_req, res, next) => {
