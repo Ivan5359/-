@@ -1,6 +1,6 @@
 # RevenueSprint 48: запуск и Railway
 
-Эта папка `leadrescue-48` теперь самостоятельная. Её можно целиком загрузить в GitHub и подключить к Railway.
+Эта папка `leadrescue-48` самостоятельная, но в корне проекта также есть wrapper-конфиг для Railway.
 
 ## Локальный запуск
 
@@ -28,15 +28,30 @@ MIN_SCAN_GAP_MS=45000
 
 ## Railway
 
-1. Загрузи папку `leadrescue-48` в GitHub как отдельный репозиторий.
-2. Подключи этот репозиторий к Railway.
-3. Добавь Railway PostgreSQL.
-4. Убедись, что у web-сервиса есть переменная `DATABASE_URL`.
-5. При желании добавь `MAX_SCAN_LIMIT=25` и `MIN_SCAN_GAP_MS=45000`.
-6. Railway сам запустит:
+Вариант A — деплой из корня репозитория:
+
+1. Загрузи весь корень проекта в GitHub.
+2. В Railway оставь Root Directory `/`.
+3. Builder: `RAILPACK`.
+4. Start command: `node leadrescue-48/server.js`.
+5. Health check path: `/health`.
+
+Вариант B — деплой только папки приложения:
+
+1. В Railway выставь Root Directory `/leadrescue-48`.
+2. Builder: `RAILPACK`.
+3. Start command: `node server.js`.
+4. Health check path: `/health`.
+
+После этого:
+
+1. Добавь Railway PostgreSQL.
+2. Убедись, что у web-сервиса есть переменная `DATABASE_URL`.
+3. При желании добавь `MAX_SCAN_LIMIT=25` и `MIN_SCAN_GAP_MS=45000`.
+4. Railway запустит:
 
 ```bash
-npm start
+node server.js
 ```
 
 Проверка:
